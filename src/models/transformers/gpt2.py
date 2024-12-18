@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 from .components import (
-    Tokenizer, 
     GPTPosEmbedding, 
     TransformerBlock
 )

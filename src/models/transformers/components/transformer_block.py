@@ -1,9 +1,6 @@
 import torch
 import torch.nn as nn
-
 from .mh_attention import MultiHeadAttention
-from .pos_embedding import GPTPosEmbedding
-from .tokenizer import Tokenizer
 
 class TransformerBlock(nn.Module):
 
