@@ -33,7 +33,7 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
         
         # The output of attention head will be combined together using a linear layer.
-        self.W_out = nn.Linear(proj_dim, proj_dim, bias=False)
+        self.W_out = nn.Linear(proj_dim, emb_dim, bias=False)
 
         # Mask out the upper triangular part of the attention score matrix.
         # This is to ensure that the model does not attend to future tokens.
@@ -113,7 +113,7 @@ class MultiHeadAttention(nn.Module):
         X_context = X_context.contiguous().view(batch_size, self.context_len, self.proj_dim)
 
         # Combine the concatenated attention heads with a linear layer
-        # The output has shape (batch_size, context_len, proj_dim)
+        # The output has shape (batch_size, context_len, emb_dim)
         X_context = self.W_out(X_context)
 
         return X_context

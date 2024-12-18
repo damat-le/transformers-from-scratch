@@ -29,14 +29,14 @@ class TransformerBlock(nn.Module):
         )
 
         # layer normalization
-        self.ln_out = nn.LayerNorm(proj_dim)
+        self.ln_out = nn.LayerNorm(emb_dim)
 
         # feed-forward
-        ff_expasion_dim = proj_dim * 4 #@TODO: this must be checked
+        ff_expasion_dim = emb_dim * 4 #@TODO: this must be checked
         self.ff = nn.Sequential(
-            nn.Linear(proj_dim, ff_expasion_dim),
+            nn.Linear(emb_dim, ff_expasion_dim),
             nn.GELU(approximate='tanh'),
-            nn.Linear(ff_expasion_dim, proj_dim)
+            nn.Linear(ff_expasion_dim, emb_dim)
         )
 
         # dropout

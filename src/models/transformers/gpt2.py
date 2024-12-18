@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
 
-from .tokenizer import Tokenizer
-from .pos_embedding import GPTPosEmbedding
-from .transformer_block import TransformerBlock
+from .components import (
+    Tokenizer, 
+    GPTPosEmbedding, 
+    TransformerBlock
+)
 
 class GPT2(nn.Module):
 
@@ -39,9 +41,9 @@ class GPT2(nn.Module):
             ) for _ in range(n_transformer_blocks)
         ])
 
-        self.ln_final = nn.LayerNorm(proj_dim)
+        self.ln_final = nn.LayerNorm(emb_dim)
         
-        self.out_layer = nn.Linear(proj_dim, vocab_size, bias=False)
+        self.out_layer = nn.Linear(emb_dim, vocab_size, bias=False)
 
 
     def forward(self, X_tokens: torch.Tensor) -> torch.Tensor:

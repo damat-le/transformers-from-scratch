@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from .tokenizer import Tokenizer
 
 class GPTPosEmbedding(nn.Module):
     """
@@ -28,7 +27,12 @@ class GPTPosEmbedding(nn.Module):
         """
         Parameters
         ----------
-        X : torch.Tensor
+        tokens : torch.Tensor
             A tensor of shape (batch_size, seq_length) containing the input tokens.
+
+        Returns
+        -------
+        torch.Tensor
+            A tensor of shape (batch_size, seq_length, emb_dim) containing the embeddings of the input tokens
         """
         return self.emb(tokens) + self.pos_emb(self.positions)
