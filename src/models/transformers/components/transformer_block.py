@@ -5,11 +5,12 @@ from .mh_attention import MultiHeadAttention
 class TransformerBlock(nn.Module):
 
     def __init__(self,
+        context_len: int,
         head_num: int,
         emb_dim: int,
         proj_dim: int,
-        context_len: int, 
-        dropout_rate: float =0.2
+        ff_dim: int,
+        dropout_rate: float
     ):
         super().__init__()
 
@@ -28,12 +29,11 @@ class TransformerBlock(nn.Module):
         # layer normalization
         self.ln_out = nn.LayerNorm(emb_dim)
 
-        # feed-forward
-        ff_expasion_dim = emb_dim * 4 #@TODO: this must be checked
+        # feed-forward block
         self.ff = nn.Sequential(
-            nn.Linear(emb_dim, ff_expasion_dim),
+            nn.Linear(emb_dim, ff_dim),
             nn.GELU(approximate='tanh'),
-            nn.Linear(ff_expasion_dim, emb_dim)
+            nn.Linear(ff_dim, emb_dim)
         )
 
         # dropout
@@ -50,7 +50,6 @@ class TransformerBlock(nn.Module):
         X = self.dropout(X)
 
         # skip connection
-        # this doesn't work if emd_dim != proj_dim
         X_skip = X_emb + X
 
         # second layer normalization

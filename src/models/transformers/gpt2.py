@@ -15,14 +15,15 @@ class GPT2(nn.Module):
     """
 
     def __init__(self,
-        vocab_size: int,
         pos_embedder: GPTPosEmbedding,
+        vocab_size: int,
+        context_len: int,
         n_transformer_blocks: int,
         head_num: int,
-        context_len: int,
         emb_dim: int,
         proj_dim: int,
-        dropout_rate: float =0.2
+        ff_dim: int,
+        dropout_rate: float
     ):
 
         super().__init__()
@@ -32,17 +33,18 @@ class GPT2(nn.Module):
 
         self.transformer_blocks = nn.Sequential(*[
             TransformerBlock(
+                context_len=context_len,
                 head_num=head_num,
                 emb_dim=emb_dim,
                 proj_dim=proj_dim,
-                context_len=context_len,
+                ff_dim=ff_dim,
                 dropout_rate=dropout_rate
             ) for _ in range(n_transformer_blocks)
         ])
 
         self.ln_final = nn.LayerNorm(emb_dim)
         
-        self.out_layer = nn.Linear(emb_dim, vocab_size, bias=False)
+        self.out_head = nn.Linear(emb_dim, vocab_size, bias=False)
 
 
     def forward(self, X_tokens: torch.Tensor) -> torch.Tensor:
@@ -64,6 +66,6 @@ class GPT2(nn.Module):
 
         # Project the output of the transformer blocks into the vocabulary space
         # shape: (batch_size, context_len, vocab_size)
-        X = self.out_layer(X)
+        X = self.out_head(X)
 
         return X
