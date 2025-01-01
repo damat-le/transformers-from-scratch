@@ -1,5 +1,9 @@
 # Transformers
 
+<p align="center">
+    <img src="misc/gpt-architecture.png" width=50%/>
+</p>
+
 ## Positional Embeddings
 
 After tokenization, the input sequence is converted into a sequence of token embeddings. Thus each token is mapped into a space of dimension `emb_dim`. Such mapping is learned during the training process through the `nn.Embedding` module in pyTorch.
