@@ -17,11 +17,6 @@ class GPTPosEmbedding(nn.Module):
         super().__init__()
         self.emb = nn.Embedding(vocab_size, emb_dim)
         self.pos_emb = nn.Embedding(context_len, emb_dim)
-        self.register_buffer(
-            'positions',
-            torch.arange(0, context_len)
-        )
-
 
     def forward(self, tokens: torch.Tensor):
         """
@@ -35,4 +30,10 @@ class GPTPosEmbedding(nn.Module):
         torch.Tensor
             A tensor of shape (batch_size, seq_length, emb_dim) containing the embeddings of the input tokens
         """
-        return self.emb(tokens) + self.pos_emb(self.positions)
+        batch_size, seq_len = tokens.size()
+        positions = torch.arange(
+            0, seq_len, 
+            device=tokens.device,
+            dtype=torch.long
+        )
+        return self.emb(tokens) + self.pos_emb(positions)
