@@ -46,6 +46,8 @@ class GPT2(nn.Module):
         
         self.out_head = nn.Linear(emb_dim, vocab_size, bias=False)
 
+        # use weight tying to share the input embedding layer and the output layer weights
+        self.pos_embedder.emb.weight = self.out_head.weight
 
     def forward(self, X_tokens: torch.Tensor) -> torch.Tensor:
         
