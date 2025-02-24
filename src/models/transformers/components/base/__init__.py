@@ -9,7 +9,7 @@ for module in modules:
     if module == '__init__.py' or module[-3:] != '.py':
         continue
 
-    path2module = "src.models.transformers.components." + module[:-3]
+    path2module = "src.models.transformers.components.base." + module[:-3]
 
     __import__(path2module, locals(), globals())
     exec(f"from {path2module} import *")

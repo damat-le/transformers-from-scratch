@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from .components import (
+from .components.base import (
     GPTPosEmbedding, 
     TransformerBlock
 )
