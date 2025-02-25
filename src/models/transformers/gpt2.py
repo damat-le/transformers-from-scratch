@@ -1,10 +1,8 @@
 import torch
 import torch.nn as nn
 
-from .components.base import (
-    GPTPosEmbedding, 
-    TransformerBlock
-)
+from .components.base.pos_embedding import GPTPosEmbedding
+from .components.base.transformer_block import TransformerBlock
 
 class GPT2(nn.Module):
 
@@ -28,7 +26,11 @@ class GPT2(nn.Module):
 
         super().__init__()
 
-        self.pos_embedder = pos_embedder
+        self.pos_embedder = pos_embedder(
+            vocab_size=vocab_size,
+            context_len=context_len,
+            emb_dim=emb_dim
+        )
         self.dropout = nn.Dropout(dropout_rate)
 
         self.transformer_blocks = nn.Sequential(*[
