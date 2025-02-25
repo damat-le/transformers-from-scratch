@@ -41,7 +41,7 @@ class NumpyTokenDataset(Dataset):
         tokens = np.memmap(self.path2tokens, dtype=np.uint16, mode='r')
 
         sel_tokens = tokens[start : end]
-        inputs = torch.from_numpy(sel_tokens[:-1])
-        targets = torch.from_numpy(sel_tokens[1:])
+        inputs = torch.tensor(sel_tokens[:-1], dtype=torch.long)
+        targets = torch.tensor(sel_tokens[1:], dtype=torch.long)
 
         return inputs, targets
