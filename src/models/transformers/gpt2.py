@@ -13,7 +13,6 @@ class GPT2(nn.Module):
     """
 
     def __init__(self,
-        pos_embedder: GPTPosEmbedding,
         vocab_size: int,
         context_len: int,
         n_transformer_blocks: int,
@@ -26,7 +25,7 @@ class GPT2(nn.Module):
 
         super().__init__()
 
-        self.pos_embedder = pos_embedder(
+        self.pos_embedder = GPTPosEmbedding(
             vocab_size=vocab_size,
             context_len=context_len,
             emb_dim=emb_dim
