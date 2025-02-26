@@ -47,6 +47,7 @@ if __name__=='__main__':
     print(f'Model: {architecture.__name__.split(".")[-1]}')
     print(f"Num. of params: {sum(p.numel() for p in model.parameters())}")
     print(f'Device: {c.trainer_params["device"]}')
+    print(f'Dataset size: {len(dataset)}')
     print('----------------------------------------')
 
     # train the model
