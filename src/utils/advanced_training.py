@@ -11,14 +11,15 @@ import os
 
 import torch
 import torch.nn as nn
-
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+import tiktoken
 
 from src.utils.parser import Config
 from src.datasets import NumpyTokenDataset
 from src.models.transformers import MODEL_REGISTRY
+from src.utils.benchmarks_evaluator import BenchmarkEvaluator
 
 class MyLogger:
 
@@ -138,11 +139,23 @@ if __name__=='__main__':
     print(f'Device: {c.trainer_params["device"]}')
     print('----------------------------------------')
 
-    # compile the model
-    model = torch.compile(model)
+    # compile the model removed for the evaluation
+    #model = torch.compile(model) 
 
     # train the model
     model.train()
+
+    #instantiate evaluator
+    tiktokenizer = tiktoken.get_encoding(c.eval_params["tokenizer_name"])
+
+    evaluation_steps = c.eval_params["eval_steps"]
+    evaluator = BenchmarkEvaluator(
+        model=model,
+        tokenizer=tiktokenizer,
+        device=c.eval_params["device"],
+        benchmarks=c.eval_params["benchmarks"],
+        data_dir=c.eval_params.get("data_dir", "./benchmark_data")  # Add data_dir
+    )
 
     optimizer = torch.optim.AdamW(
         model.parameters(), 
@@ -165,6 +178,7 @@ if __name__=='__main__':
                     outputs.view(-1, c.model_params["vocab_size"]), 
                     targets.view(-1)
                 )
+                loss_not_scaled = loss.item()
                 loss = loss / GRAD_ACC_STEPS
             loss.backward()
      
@@ -175,10 +189,23 @@ if __name__=='__main__':
                     model, None, None, step=pbar.n
                 )
 
+            if pbar.n % evaluation_steps == 0:
+                # Run evaluation
+                model.eval()
+                eval_res = evaluator.evaluate()
+                model.train()
+                print(eval_res)
+                for benchmark in eval_res:
+                    metric_name = f"{benchmark} {eval_res[benchmark]['metric']}"
+                    logger.log_scalars(
+                        {metric_name: eval_res[benchmark]['score']},
+                        step=pbar.n
+                    )
+
             if pbar.n % 10 == 0:
                 pbar.set_postfix({
                     "Epoch": epoch,
-                    "Loss": loss.item(),
+                    "Loss": loss_not_scaled,
                 })
                 logger.log_scalars(
                     {"Loss": loss.item()},
