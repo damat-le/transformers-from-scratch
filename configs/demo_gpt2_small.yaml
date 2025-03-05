@@ -27,6 +27,6 @@ log_params:
 
 eval_params:
   device: 'cuda'
-  eval_steps: 500
+  eval_steps: 20000
   tokenizer_name: 'gpt2'
   benchmarks: ['hellaswag']

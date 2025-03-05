@@ -105,7 +105,7 @@ if __name__=='__main__':
 
     # load the config file
     c = Config.from_yaml(args.c)
-    GRAD_ACC_STEPS = 60
+    GRAD_ACC_STEPS = 200
 
     # create the logger
     logger = MyLogger(c.log_params["log_dir"])
@@ -202,7 +202,7 @@ if __name__=='__main__':
                         step=pbar.n
                     )
 
-            if pbar.n % 10 == 0:
+            if pbar.n % GRAD_ACC_STEPS == 0:
                 pbar.set_postfix({
                     "Epoch": epoch,
                     "Loss": loss_not_scaled,
