@@ -74,7 +74,7 @@ if __name__=='__main__':
     pbar = tqdm(total=len(dataloader))
 
     for epoch in range(1):
-        for step, (inputs, targets) in enumerate(dataloader):
+        for inputs, targets in dataloader:
             
             inputs = inputs.to(device)
             targets = targets.to(device)
