@@ -1,0 +1,32 @@
+data_params:
+  path2tokens: 'data/1M-wikipedia-gpt2-tokens-uint16.npy'
+  stride: 1
+
+model_params:
+  model_name: GPT2
+  vocab_size: 50257
+  context_len: 1024
+  n_transformer_blocks: 12
+  head_num: 12
+  emb_dim: 768
+  proj_dim: 768
+  ff_dim: 3072
+  dropout_rate: 0.1
+
+opt_params:
+  lr: 0.0001
+
+trainer_params:
+  device: 'cuda'
+  batch_size: 1
+  data_workers: 4
+
+log_params:
+  log_dir: logs/GPT2
+  seed: 42
+
+eval_params:
+  device: 'cuda'
+  eval_steps: 20000
+  tokenizer_name: 'gpt2'
+  benchmarks: ['hellaswag']
