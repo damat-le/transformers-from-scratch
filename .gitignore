@@ -4,3 +4,14 @@ __pycache__/
 .DS_Store
 misc/
 TODO.txt
+data/hf_cache/
+data/en-*
+data/wikipedia-*
+_notebooks/.ipynb_checkpoints/
+_notebooks/_helper.ipynb
+_notebooks/loss1
+_notebooks/model_summary.ipynb
+_notebooks/profiling.ipynb
+_notebooks/tokenizing.ipynb
+_notebooks/training.ipynb
+logs/
