@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from src.utils.parser import Config
 from src.datasets import NumpyTokenDataset
 from src.models.transformers import MODEL_REGISTRY
+from src.utils.benchmarks_evaluator import BenchmarkEvaluator
 
 if __name__=='__main__':
 
@@ -41,6 +42,18 @@ if __name__=='__main__':
     # instantiate the model
     architecture = MODEL_REGISTRY[c.model_params.pop("model_name")]
     model = architecture(**c.model_params).to(device)
+
+    #instantiate evaluator
+    tiktokenizer = tiktoken.get_encoding(c.eval_params["tokenizer_name"])
+
+    evaluation_steps = c.eval_params["eval_steps"]
+    evaluator = BenchmarkEvaluator(
+        model=model,
+        tokenizer=tiktokenizer,
+        device=c.eval_params["device"],
+        benchmarks=c.eval_params["benchmarks"],
+        data_dir=c.eval_params.get("data_dir", "./benchmark_data")  # Add data_dir
+    )
 
     # print info
     print('----------------------------------------')
@@ -75,6 +88,12 @@ if __name__=='__main__':
             loss.backward()
             optimizer.step()
 
+            if pbar.n % evaluation_steps == 0:
+                # Run evaluation
+                model.eval()
+                eval_res = evaluator.evaluate()
+                model.train()
+                print(eval_res)
 
             if pbar.n % 10 == 0:
                 pbar.set_postfix({
