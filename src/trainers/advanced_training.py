@@ -14,85 +14,12 @@ import torch.nn as nn
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+from torch.optim.lr_scheduler import SequentialLR, CosineAnnealingLR, LambdaLR
 
 from src.utils.parser import Config
 from src.datasets import NumpyTokenDataset
 from src.models.transformers import MODEL_REGISTRY
-
-class MyLogger:
-
-    def __init__(self, log_dir):
-        self.log_dir = self.setup_log_dir(log_dir)
-        self.writer = SummaryWriter(self.log_dir)
-
-    @staticmethod
-    def get_last_log_dir_num(log_dir):
-        """
-        The log_dir is supposed to be a directory where the logs of different 
-        runs are stored. Each run is stored in a directory named "vX", 
-        where X is a number.
-
-        Every time a new logger is created, it checks the log_dir and returns
-        the name of the new directory to be created, by incrementing the 
-        version number. 
-        """
-        nums = [int(d[1:]) for d in os.listdir(log_dir) if d.startswith("v")]
-        if len(nums) == 0:
-            v = "v0"
-        else:
-            v = f"v{max(nums) + 1}"
-        return v
-
-    def setup_log_dir(self, log_dir):
-        """
-        Create the directory where the logs will be stored.
-        """
-        os.makedirs(log_dir, exist_ok=True)
-        v = self.get_last_log_dir_num(log_dir)
-        log_dir = os.path.join(log_dir, v)
-        os.makedirs(log_dir, exist_ok=True)
-        os.makedirs(os.path.join(log_dir, "checkpoints"), exist_ok=True)
-        return log_dir
-    
-    def log_scalars(self, scalars, step):
-        """
-        Log a dictionary of scalars.
-        """
-        for k, v in scalars.items():
-            self.writer.add_scalar(k, v, step)
-
-    def log_checkpoint(self, model, optimizer, scheduler, step):
-        """
-        Save the model, optimizer and scheduler state dicts.
-        """
-
-        ckpnt = {
-            "model": model.state_dict() if model is not None else None,
-            "optimizer": optimizer.state_dict() if optimizer is not None else None,
-            "scheduler": scheduler.state_dict() if scheduler is not None else None,
-        }
-
-        ckpnt_dir = os.path.join(self.log_dir, "checkpoints")
-        ckpnt_name = os.path.join(ckpnt_dir, f"step_{step}.pt")
-        torch.save(ckpnt, ckpnt_name)
-        # remove old checkpoints
-        to_be_removed = [
-            f for f in os.listdir(ckpnt_dir)
-                if f.startswith("step_") and f != f"step_{step}.pt"
-        ]
-        for f in to_be_removed:
-            os.remove(os.path.join(ckpnt_dir, f))
-
-    def log_config(self, config: Config):
-        """
-        Save the config file.
-        """
-        config.to_yaml(os.path.join(self.log_dir, "hparams.yaml"))
-
-    def close(self):
-        self.writer.close()
-
+from src.utils.logger import MyLogger
 
 if __name__=='__main__':
 
@@ -104,7 +31,6 @@ if __name__=='__main__':
 
     # load the config file
     c = Config.from_yaml(args.c)
-    GRAD_ACC_STEPS = 60
 
     # create the logger
     logger = MyLogger(c.log_params["log_dir"])
@@ -125,6 +51,7 @@ if __name__=='__main__':
         dataset, 
         batch_size=c.trainer_params["batch_size"], 
         num_workers=c.trainer_params["data_workers"],
+        shuffle=True
     )
 
     # instantiate the model
@@ -136,6 +63,8 @@ if __name__=='__main__':
     print(f'Model: {architecture.__name__.split(".")[-1]}')
     print(f"Num. of params: {sum(p.numel() for p in model.parameters())}")
     print(f'Device: {c.trainer_params["device"]}')
+    print(f'Dataloader size: {len(dataloader)}')
+    print('Dataset size: ', len(dataset))
     print('----------------------------------------')
 
     # compile the model
@@ -146,8 +75,24 @@ if __name__=='__main__':
 
     optimizer = torch.optim.AdamW(
         model.parameters(), 
-        lr=c.opt_params["lr"]
+        lr=c.lr_params["max"],
+        weight_decay=0.1,#c.lr_params["weight_decay"],
     )
+
+    lr_warmup_scheudler = LambdaLR(
+        optimizer,
+        lambda step: min(1, step / c.lr_params["warmup_steps"])
+    )
+    lr_cosine_scheduler = CosineAnnealingLR(
+        optimizer,
+        T_max= len(dataloader) // c.trainer_params["grad_acc_steps"] - c.lr_params["warmup_steps"],
+    )
+    lr_scheduler = SequentialLR(
+        optimizer,
+        schedulers=[lr_warmup_scheudler, lr_cosine_scheduler],
+        milestones=[c.lr_params["warmup_steps"]],
+    )
+
     loss_fn = nn.CrossEntropyLoss()
 
     pbar = tqdm(total=len(dataloader))
@@ -165,23 +110,42 @@ if __name__=='__main__':
                     outputs.view(-1, c.model_params["vocab_size"]), 
                     targets.view(-1)
                 )
-                loss = loss / GRAD_ACC_STEPS
+                loss_display = loss.detach().item()
+                loss = loss / c.trainer_params["grad_acc_steps"]
             loss.backward()
-     
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
-            if pbar.n % GRAD_ACC_STEPS == 0:
+
+            if pbar.n % c.trainer_params["grad_acc_steps"] == 0:
                 optimizer.step()
+                lr_scheduler.step()
+
                 logger.log_checkpoint(
                     model, None, None, step=pbar.n
+                )
+
+                tmp = c.eval_params["text_gen"]
+                logger.log_gentext(
+                    model=model,
+                    step=pbar.n,
+                    seed_text=tmp["seed_text"],
+                    tokenizer=tmp['tokenizer'],
+                    topk=tmp["topk"],
+                    max_len_return_seq=tmp["max_len_return_seq"],
+                    n_return_seq=tmp["n_return_seq"],
+                    seed = tmp["seed"]
                 )
 
             if pbar.n % 10 == 0:
                 pbar.set_postfix({
                     "Epoch": epoch,
-                    "Loss": loss.item(),
+                    "Loss": loss_display,
+                    "LR": optimizer.param_groups[0]["lr"],
                 })
                 logger.log_scalars(
-                    {"Loss": loss.item()},
+                    {
+                        "Loss": loss_display,
+                        "LR": optimizer.param_groups[0]["lr"],
+                    },
                     step=pbar.n
                 )
             pbar.update(1)
