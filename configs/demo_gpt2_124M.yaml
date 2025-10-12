@@ -13,14 +13,25 @@ model_params:
   ff_dim: 3072
   dropout_rate: 0.1
 
-opt_params:
-  lr: 0.0001
+lr_params:
+  warmup_steps: 100 #300
+  max: 0.0003
 
 trainer_params:
-  device: 'cuda'
-  batch_size: 16
+  device: 'cuda:1'
+  batch_size: 8
+  grad_acc_steps: 60
   data_workers: 4
 
 log_params:
   log_dir: logs/GPT2
   seed: 42
+
+eval_params:
+  text_gen:
+    seed_text: The capital of Italy is
+    tokenizer: gpt2
+    topk: 50
+    max_len_return_seq: 25
+    n_return_seq: 1
+    seed: 42
